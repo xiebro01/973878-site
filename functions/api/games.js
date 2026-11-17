@@ -73,30 +73,51 @@ async function probe(env) {
 /* ---------------- HTML 结构诊断 ---------------- */
 async function deep(env) {
   const id = String((env && env.STEAM_ID) || 'xie73').trim();
-  const r = await fetchT(gamesUrl(id), { headers: { 'User-Agent': UA } }, 8000);
+  const target = gamesUrl(id);
+  const r = await fetchT(target, { headers: { 'User-Agent': UA } }, 8000);
   const html = await r.text();
 
   const count = (re) => (html.match(re) || []).length;
-  const window = (needle, size = 900) => {
+  const slice = (needle, before = 200, size = 900) => {
     const i = html.indexOf(needle);
-    return i < 0 ? null : html.slice(Math.max(0, i - 120), i + size);
+    return i < 0 ? null : html.slice(Math.max(0, i - before), i + size);
   };
 
+  const classes = {};
+  (html.match(/class="([^"]{1,80})"/g) || []).forEach((c) => {
+    const v = c.slice(7, -1).trim();
+    if (v) classes[v] = (classes[v] || 0) + 1;
+  });
+  const topClasses = Object.entries(classes).sort((a, b) => b[1] - a[1]).slice(0, 25);
+
+  const scripts = (html.match(/<script[^>]+src="([^"]+)"/g) || [])
+    .map((s) => (s.match(/src="([^"]+)"/) || [])[1]).slice(0, 12);
+
   return {
+    target,
     status: r.status,
     bytes: html.length,
-    private: /This profile is private/i.test(html),
-    has_g_rgAppInfo: /g_rgAppInfo/.test(html),
-    has_g_rgGames: /g_rgGames/.test(html),
-    counts: {
-      gameListRow: count(/gameListRow/g),
-      app_links: count(/store\.steampowered\.com\/app\//g),
-      game_id_attr: count(/id="game_\d+"/g),
-      hours_played: count(/hours_played/g),
-      appid_data: count(/data-appid=/g),
+    title: (html.match(/<title[^>]*>([\s\S]*?)<\/title>/) || [])[1] || null,
+    markers: {
+      profilePrivate: /This profile is private/i.test(html),
+      couldNotBeFound: /could not be found/i.test(html),
+      signIn: /Sign In/i.test(html),
+      ageGate: /agecheck|Mature Content/i.test(html),
     },
-    around_app_link: window('store.steampowered.com/app/'),
-    around_g_rgAppInfo: window('g_rgAppInfo'),
+    counts: {
+      app_href: count(/href="[^"]*\/app\/\d+/g),
+      app_full: count(/store\.steampowered\.com\/app\/\d+/g),
+      data_appid: count(/data-appid/g),
+      hours_words: count(/hoursOnRecord|hrs on record/gi),
+      gameListRow: count(/gameListRow/g),
+    },
+    firstAppSnippet: slice('/app/'),
+    bodyText: (html.replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ').trim()).slice(0, 700),
+    topClasses,
+    scripts,
   };
 }
 
@@ -139,6 +160,10 @@ async function viaPublicPage(id) {
 
   if (/This profile is private/i.test(html)) {
     throw new Error('Steam 资料是私密的：请在隐私设置里把「游戏详情」改为公开');
+  }
+
+  if (/could not be found/i.test(html)) {
+    throw new Error(`找不到 Steam 资料「${id}」：自定义 URL 可能不是这个，改用 17 位 SteamID64 更稳`);
   }
 
   const games = parseGames(html);
