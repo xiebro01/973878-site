@@ -22,17 +22,18 @@ window.DEMO = {
   },
 
   movies: {
-    source: 'letterboxd',
+    source: 'letterboxd+neodb',
     updated: '2026-11-17',
     total: 6,
-    average: 3.8,
+    matched: 4,
+    average: 7.6,
     items: [
-      { title: 'Possible Love', year: 2026, rating: 4.0, watched: '2026-11-16', url: 'https://letterboxd.com/', review: null },
-      { title: 'Backrooms', year: 2026, rating: 3.5, watched: '2026-11-15', url: 'https://letterboxd.com/', review: null },
-      { title: 'Doctor Strange in the Multiverse of Madness', year: 2022, rating: 3.5, watched: '2026-11-15', url: 'https://letterboxd.com/', review: '特效很满，故事有点散，但两个小时的娱乐性是够的。' },
-      { title: 'Coward', year: 2026, rating: 4.0, watched: '2026-11-10', url: 'https://letterboxd.com/', review: null },
-      { title: 'Wild Horse Nine', year: 2026, rating: 4.0, watched: '2026-11-09', url: 'https://letterboxd.com/', review: null },
-      { title: 'Coyote vs. Acme', year: 2026, rating: 3.5, watched: '2026-11-06', url: 'https://letterboxd.com/', review: null }
+      { title: 'Possible Love', year: 2026, lb: 4.0, nd: 8.0, score: 8.0, sources: ['letterboxd','neodb'], watched: '2026-11-16', url: 'https://letterboxd.com/', review: null },
+      { title: 'Backrooms', year: 2026, lb: 3.5, nd: 7.0, score: 7.0, sources: ['letterboxd','neodb'], watched: '2026-11-15', url: 'https://letterboxd.com/', review: null },
+      { title: 'Doctor Strange in the Multiverse of Madness', year: 2022, lb: 3.5, nd: 6.0, score: 6.5, sources: ['letterboxd','neodb'], watched: '2026-11-15', url: 'https://letterboxd.com/', review: '特效很满，故事有点散，但两个小时的娱乐性是够的。' },
+      { title: 'Coward', year: 2026, lb: 4.0, nd: 9.0, score: 8.5, sources: ['letterboxd','neodb'], watched: '2026-11-10', url: 'https://letterboxd.com/', review: null },
+      { title: 'Wild Horse Nine', year: 2026, lb: 4.0, nd: null, score: 8.0, sources: ['letterboxd'], watched: '2026-11-09', url: 'https://letterboxd.com/', review: null },
+      { title: 'Coyote vs. Acme', year: 2026, lb: 3.5, nd: 7.0, score: 7.0, sources: ['letterboxd'], watched: '2026-11-06', url: 'https://letterboxd.com/', review: null }
     ]
   }
 };

@@ -14,7 +14,7 @@
 
   <a class="back" href="../../">← 973878.xyz</a>
   <h1 class="page-title">影视</h1>
-  <p class="page-sub">在 Letterboxd 标记完，这里自动列出。评级和短评都是你当时写的。</p>
+  <p class="page-sub">Letterboxd 与 NeoDB 两边的评分取平均，统一到 10 分制。哪边没记就只用另一边。</p>
 
   <div class="stats" id="stats" hidden></div>
   <div class="log" id="log"></div>
@@ -63,34 +63,45 @@
 
   function render(data) {
     if (!data || !data.items || !data.items.length) {
-      fail('还没有观影记录', '去 Letterboxd 标记一部电影，这里就会多一行。');
+      fail('还没有观影记录', '去 Letterboxd 或 NeoDB 标记一部电影，这里就会多一行。');
       return;
     }
 
     state.hidden = true;
     stats.hidden = false;
 
-    const stars = data.average != null ? data.average.toFixed(1) : '—';
+    const avg = data.average != null ? data.average.toFixed(1) : '—';
     stats.innerHTML =
       '<div class="stat"><b>' + data.total + '</b><span>部</span></div>' +
-      '<div class="stat"><b>' + stars + '</b><span>平均评分</span></div>' +
+      '<div class="stat"><b>' + avg + '</b><span>均分 / 10</span></div>' +
+      '<div class="stat"><b>' + (data.matched || 0) + '</b><span>双源匹配</span></div>' +
       '<div class="stat"><b>' + (data.updated || '—') + '</b><span>同步于</span></div>';
 
     log.innerHTML = data.items.map(function (m) {
-      const rating = m.rating != null ? '★ ' + m.rating.toFixed(1) : '未评分';
       const href = m.url || 'https://letterboxd.com';
+      const score = m.score != null ? m.score.toFixed(1) : '—';
+
+      const parts = [];
+      if (m.lb != null) parts.push('LB ' + m.lb.toFixed(1));
+      if (m.nd != null) parts.push('ND ' + m.nd.toFixed(1));
+      if (m.review) parts.push(m.review);
+
       return (
         '<div class="log-row">' +
           '<div class="t"><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(m.title) + '</a>' +
             (m.year ? '<span class="y">' + m.year + '</span>' : '') +
           '</div>' +
-          '<div class="r">' + rating + '</div>' +
-          (m.review ? '<div class="d">' + esc(m.review) + '</div>' : '') +
+          '<div class="r">' + score + '</div>' +
+          (parts.length ? '<div class="d">' + esc(parts.join(' · ')) + '</div>' : '') +
         '</div>'
       );
     }).join('');
 
-    source.textContent = 'letterboxd';
+    const s = data.sources || {};
+    const tag = [];
+    if (s.letterboxd && s.letterboxd.ok) tag.push('letterboxd');
+    if (s.neodb && s.neodb.ok) tag.push('neodb');
+    source.textContent = tag.length ? tag.join(' + ') : 'letterboxd';
   }
 
   async function boot() {

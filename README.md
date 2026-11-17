@@ -37,7 +37,9 @@
 | 页面 | 接口 | 需要的环境变量 |
 |---|---|---|
 | 游戏 | `/api/games` | `STEAM_ID`（必填）、`STEAM_KEY`（可选） |
-| 影视 | `/api/movies` | `LETTERBOXD_USER` |
+| 影视 | `/api/movies` | `LETTERBOXD_USER`、`NEO_DB_TOKEN`（至少填一个） |
+
+影视页会同时拉两个来源，按片名匹配后取均分：Letterboxd 的 0–5 分 ×2 换算成 10 分制，再和 NeoDB 的 1–10 分平均；只有一边有记录时就用单边分数。
 
 配置位置：Cloudflare Pages → 项目 → **设置 → 环境变量**，加完要**重新部署**一次才生效。
 
