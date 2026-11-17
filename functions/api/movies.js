@@ -54,7 +54,57 @@ export async function onRequestGet({ request, env }) {
 }
 
 /* ---------------- Letterboxd ---------------- */
+/* 优先解析「看过的电影」页面：比 RSS 全（RSS 只有最近活动，且常常是空的） */
 async function letterboxd(user, debug) {
+  const pageUrl = `https://letterboxd.com/${encodeURIComponent(user)}/films/`;
+
+  try {
+    const r = await fetch(pageUrl, { headers: { 'User-Agent': UA } });
+    if (r.status === 404) throw new Error(`找不到 Letterboxd 用户：${user}`);
+    if (r.ok) {
+      const html = await r.text();
+      const list = parseFilmsPage(html);
+      if (list.length) return list;
+    }
+  } catch (e) {
+    if (String(e.message).includes('找不到')) throw e;
+  }
+
+  return viaRss(user);
+}
+
+/* 从 HTML 里解析海报墙条目 */
+function parseFilmsPage(html) {
+  const out = [];
+  const seen = new Set();
+  const re = /data-target-link="\/film\/([^"\/]+)\/"/g;
+  let m;
+
+  while ((m = re.exec(html))) {
+    const slug = m[1];
+    if (seen.has(slug)) continue;
+    seen.add(slug);
+
+    const chunk = html.slice(m.index, Math.min(html.length, m.index + 3000));
+    const title = (chunk.match(/alt="([^"]+)"/) || [])[1] || slug;
+    const rated = (chunk.match(/rated-(\d+)/) || [])[1];
+    const year = (slug.match(/-(\d{4})$/) || [])[1];
+
+    out.push({
+      title: decode(title).replace(/\s*\(\d{4}\)$/, ''),
+      year: year ? Number(year) : null,
+      rating5: rated ? Number(rated) / 2 : null,
+      watched: null,
+      url: `https://letterboxd.com/film/${slug}/`,
+      review: null,
+    });
+  }
+
+  return out;
+}
+
+/* 备用：RSS（只含最近活动） */
+async function viaRss(user) {
   const r = await fetch(`https://letterboxd.com/${encodeURIComponent(user)}/rss/`, {
     headers: { 'User-Agent': UA },
   });
@@ -171,8 +221,7 @@ function merge(lb, nd, errors) {
     });
   });
 
-  items.sort((a, b) => String(b.watched || '').localeCompare(String(a.watched || '')));
-
+  // 保持 Letterboxd 页面本身的顺序（最近看过的在前），NeoDB 独有的追加在后
   const scored = items.filter((x) => x.score != null);
   const average = scored.length
     ? round1(scored.reduce((s, x) => s + x.score, 0) / scored.length)
