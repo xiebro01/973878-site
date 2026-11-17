@@ -13,9 +13,10 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$SteamId,
-
-    [string]$OutFile = "$PSScriptRoot\..\data\games.json"
+    [string]$OutFile = ""
 )
+
+if (-not $OutFile) { $OutFile = Join-Path $PSScriptRoot '..\data\games.json' }
 
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12

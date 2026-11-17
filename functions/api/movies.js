@@ -20,13 +20,15 @@ export async function onRequestGet({ request, env }) {
   const lbUser = (env.LETTERBOXD_USER || '').trim();
   const ndToken = (env.NEO_DB_TOKEN || '').trim();
   const debug = new URL(request.url).searchParams.has('debug');
+  const origin = new URL(request.url).origin;
 
   if (!lbUser && !ndToken) {
     return json({ error: 'missing_env', message: '至少配置 LETTERBOXD_USER 或 NEO_DB_TOKEN 中的一个' }, 500);
   }
 
+  const diag = {};
   const tasks = [];
-  if (lbUser) tasks.push(letterboxd(lbUser, debug));
+  if (lbUser) tasks.push(letterboxd(lbUser, origin, diag));
   if (ndToken) tasks.push(neodb(ndToken, debug));
 
   const settled = await Promise.allSettled(tasks);
@@ -44,33 +46,81 @@ export async function onRequestGet({ request, env }) {
     }
   });
 
-  if (debug) return json({ letterboxd: lb, neodb: nd, errors });
+  if (debug) return json({ letterboxd: lb, neodb: nd, errors, diag });
 
   if (!lb.length && !nd.length) {
-    return json({ error: 'empty', message: '两个来源都没有数据', errors }, 502);
+    return json({ error: 'empty', message: '两个来源都没有数据', errors, diag }, 502);
   }
 
-  return json(merge(lb, nd, errors), 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=1800' });
+  return json(merge(lb, nd, errors, diag), 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=1800' });
 }
 
 /* ---------------- Letterboxd ---------------- */
-/* 优先解析「看过的电影」页面：比 RSS 全（RSS 只有最近活动，且常常是空的） */
-async function letterboxd(user, debug) {
+/* 依次尝试：看过的页面（最全）→ RSS（最近活动）→ 本机同步的 data/movies.json */
+async function letterboxd(user, origin, diag) {
+  diag.filmsPage = {};
+  diag.rss = {};
+  diag.snapshot = {};
+
   const pageUrl = `https://letterboxd.com/${encodeURIComponent(user)}/films/`;
 
+  // 1) 看过的电影页面
   try {
-    const r = await fetch(pageUrl, { headers: { 'User-Agent': UA } });
+    const r = await fetch(pageUrl, {
+      headers: {
+        'User-Agent': UA,
+        Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        Referer: 'https://letterboxd.com/',
+      },
+    });
+    diag.filmsPage.status = r.status;
     if (r.status === 404) throw new Error(`找不到 Letterboxd 用户：${user}`);
     if (r.ok) {
       const html = await r.text();
+      diag.filmsPage.bytes = html.length;
       const list = parseFilmsPage(html);
+      diag.filmsPage.items = list.length;
       if (list.length) return list;
     }
   } catch (e) {
-    if (String(e.message).includes('找不到')) throw e;
+    diag.filmsPage.error = String((e && e.message) || e);
+    if (String(e && e.message).includes('找不到')) throw e;
   }
 
-  return viaRss(user);
+  // 2) RSS
+  try {
+    const list = await viaRss(user, diag);
+    if (list.length) return list;
+  } catch (e) {
+    diag.rss.error = String((e && e.message) || e);
+  }
+
+  // 3) 本机同步的快照（tools/sync-letterboxd.ps1 生成）
+  try {
+    const r = await fetch(`${origin}/data/movies.json?t=${Date.now()}`, { headers: { Accept: 'application/json' } });
+    diag.snapshot.status = r.status;
+    if (r.ok) {
+      const j = await r.json();
+      const items = Array.isArray(j) ? j : (j.items || []);
+      diag.snapshot.items = items.length;
+      if (items.length) {
+        diag.snapshot.used = true;
+        return items.map((x) => ({
+          title: x.title,
+          year: x.year || null,
+          rating5: typeof x.rating5 === 'number' ? x.rating5 : null,
+          watched: x.watched || null,
+          url: x.url || null,
+          review: x.review || null,
+        }));
+      }
+    }
+  } catch (e) {
+    diag.snapshot.error = String((e && e.message) || e);
+  }
+
+  return [];
 }
 
 /* 从 HTML 里解析海报墙条目 */
@@ -104,15 +154,17 @@ function parseFilmsPage(html) {
 }
 
 /* 备用：RSS（只含最近活动） */
-async function viaRss(user) {
+async function viaRss(user, diag) {
   const r = await fetch(`https://letterboxd.com/${encodeURIComponent(user)}/rss/`, {
-    headers: { 'User-Agent': UA },
+    headers: { 'User-Agent': UA, Accept: 'application/rss+xml,application/xml' },
   });
+  if (diag) diag.rss.status = r.status;
   if (r.status === 404) throw new Error(`找不到 Letterboxd 用户：${user}`);
-  if (!r.ok) throw new Error(`Letterboxd 返回 ${r.status}`);
+  if (!r.ok) throw new Error(`Letterboxd RSS 返回 ${r.status}`);
 
   const xml = await r.text();
   const blocks = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
+  if (diag) diag.rss.items = blocks.length;
 
   return blocks.map((b) => {
     const rating = parseFloat(pick(b, 'letterboxd:memberRating'));
@@ -160,7 +212,7 @@ async function neodb(token, debug) {
 }
 
 /* ---------------- 合并 + 均分 ---------------- */
-function merge(lb, nd, errors) {
+function merge(lb, nd, errors, diag) {
   const key = (t) => String(t || '')
     .toLowerCase()
     .normalize('NFKD')
@@ -229,6 +281,10 @@ function merge(lb, nd, errors) {
 
   const both = items.filter((x) => x.sources.length === 2).length;
 
+  const via = diag && diag.snapshot && diag.snapshot.used
+    ? 'snapshot'
+    : (diag && diag.filmsPage && diag.filmsPage.items ? 'page' : 'rss');
+
   return {
     source: 'letterboxd+neodb',
     updated: new Date().toISOString().slice(0, 10),
@@ -236,9 +292,10 @@ function merge(lb, nd, errors) {
     matched: both,
     average,
     sources: {
-      letterboxd: { count: lb.length, ok: !errors.some((e) => e.source === 'letterboxd') },
-      neodb: { count: nd.length, ok: !errors.some((e) => e.source === 'neodb') },
+      letterboxd: { count: lb.length, ok: lb.length > 0, via },
+      neodb: { count: nd.length, ok: nd.length > 0 },
     },
+    diag,
     errors,
     items,
   };

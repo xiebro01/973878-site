@@ -1,0 +1,79 @@
+{
+    "source":  "letterboxd-local",
+    "updated":  "2026-11-17",
+    "total":  12,
+    "items":  [
+                  {
+                      "title":  "The Odyssey",
+                      "year":  2026,
+                      "rating5":  4.5,
+                      "url":  "https://letterboxd.com/film/the-odyssey-2026/"
+                  },
+                  {
+                      "title":  "Project Hail Mary",
+                      "year":  null,
+                      "rating5":  4.5,
+                      "url":  "https://letterboxd.com/film/project-hail-mary/"
+                  },
+                  {
+                      "title":  "Obsession",
+                      "year":  2025,
+                      "rating5":  4.5,
+                      "url":  "https://letterboxd.com/film/obsession-2025/"
+                  },
+                  {
+                      "title":  "Oppenheimer",
+                      "year":  2023,
+                      "rating5":  5,
+                      "url":  "https://letterboxd.com/film/oppenheimer-2023/"
+                  },
+                  {
+                      "title":  "The Batman",
+                      "year":  null,
+                      "rating5":  4.5,
+                      "url":  "https://letterboxd.com/film/the-batman/"
+                  },
+                  {
+                      "title":  "Midsommar",
+                      "year":  null,
+                      "rating5":  4.5,
+                      "url":  "https://letterboxd.com/film/midsommar/"
+                  },
+                  {
+                      "title":  "La La Land",
+                      "year":  null,
+                      "rating5":  5,
+                      "url":  "https://letterboxd.com/film/la-la-land/"
+                  },
+                  {
+                      "title":  "Interstellar",
+                      "year":  null,
+                      "rating5":  5,
+                      "url":  "https://letterboxd.com/film/interstellar/"
+                  },
+                  {
+                      "title":  "American Psycho",
+                      "year":  null,
+                      "rating5":  4,
+                      "url":  "https://letterboxd.com/film/american-psycho/"
+                  },
+                  {
+                      "title":  "Fight Club",
+                      "year":  null,
+                      "rating5":  5,
+                      "url":  "https://letterboxd.com/film/fight-club/"
+                  },
+                  {
+                      "title":  "The Truman Show",
+                      "year":  null,
+                      "rating5":  5,
+                      "url":  "https://letterboxd.com/film/the-truman-show/"
+                  },
+                  {
+                      "title":  "Pulp Fiction",
+                      "year":  null,
+                      "rating5":  4.5,
+                      "url":  "https://letterboxd.com/film/pulp-fiction/"
+                  }
+              ]
+}
