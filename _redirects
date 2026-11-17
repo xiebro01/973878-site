@@ -1,18 +1,14 @@
 # Cloudflare Pages 重定向规则
-# 文档：https://developers.cloudflare.com/pages/configuration/redirects/
-# 格式： 源路径    目标地址    [状态码]
-# 改完直接重新上传 / git push 就生效，比 Worker 简单
+# 格式：  源路径    目标地址    [状态码]
+# 文档：  https://developers.cloudflare.com/pages/configuration/redirects/
 
-# ---- 短链示例 ----
-/go/github    https://github.com/yourname        302
-/go/blog      /blog/                             302
-/go/nas       https://nas.973878.xyz             302
-/go/resume    https://example.com/your-resume    302
+# ---- 短链（改这里的 target 就行）----
+/go/gh      https://github.com/yourname          302
+/go/bgm     https://bgm.tv                       302
+/go/lb      https://letterboxd.com               302
+/go/nav     /nav/                                302
 
 # ---- 常用别名 ----
-/home         /                                 302
-/me           /                                 302
-
-# ---- 想强制 www 跳到裸域，取消下面两行注释（裸域反过来跳就交换位置）----
-# https://www.973878.xyz/*    https://973878.xyz/:splat    301
-# http://973878.xyz/*         https://973878.xyz/:splat    301
+/home       /                                    302
+/me         /                                    302
+/nav        /nav/                                301

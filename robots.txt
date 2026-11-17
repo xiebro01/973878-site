@@ -1,6 +1,5 @@
-User-agent: *
-Allow: /
+# 只给熟人的站：默认不让搜索引擎收录
+# 想让别人搜到，把下面两行注释掉即可
 
-# 不想被搜索引擎收录就改成：
-# User-agent: *
-# Disallow: /
+User-agent: *
+Disallow: /

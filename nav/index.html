@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>导航 — 973878.xyz</title>
+<meta name="description" content="常用站点的固定入口。" />
+<meta name="theme-color" content="#0B0D10" />
+<link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+<main class="wrap page">
+
+  <a class="back" href="../">← 973878.xyz</a>
+  <h1 class="page-title">导航</h1>
+  <p class="page-sub">常去的地方都在这里。输入名称或关键词，实时过滤。</p>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.4"/><path d="m16 16 4 4"/></svg>
+    <label class="sr-only" for="q">搜索站点</label>
+    <input id="q" type="search" placeholder="搜索站点，比如 steam、影音、字典…" autocomplete="off" spellcheck="false" />
+    <span class="hint">/</span>
+  </div>
+
+  <div id="groups"></div>
+
+  <div class="empty" id="empty" hidden>
+    <strong>没有匹配的站点</strong>
+    <p>换个关键词试试，或者到 <span class="mono">data/nav.js</span> 里加一条。</p>
+  </div>
+
+  <footer class="foot">
+    <a href="../">首页</a>
+    <a href="mailto:hi@973878.xyz" class="mono">hi@973878.xyz</a>
+    <span class="spacer"></span>
+    <span class="mono" id="count"></span>
+    <span class="mono" id="updated"></span>
+  </footer>
+
+</main>
+
+<script src="../data/nav.js"></script>
+<script>
+(function () {
+  const NAV = window.NAV;
+  const host = document.getElementById('groups');
+  const empty = document.getElementById('empty');
+  const input = document.getElementById('q');
+  const countEl = document.getElementById('count');
+
+  if (!NAV || !Array.isArray(NAV.groups)) {
+    host.innerHTML = '<div class="empty"><strong>数据未加载</strong><p>检查 data/nav.js 是否存在，或刷新页面。</p></div>';
+    return;
+  }
+
+  const total = NAV.groups.reduce((n, g) => n + g.items.length, 0);
+  countEl.textContent = total + ' 个站点';
+
+  const updatedEl = document.getElementById('updated');
+  if (NAV.updated) updatedEl.textContent = '· ' + NAV.updated;
+
+  // 首字作为标识；中文取第一个字，英文取大写首字母
+  function badge(name) {
+    const ch = Array.from(name.trim())[0] || '·';
+    return /[a-z]/i.test(ch) ? ch.toUpperCase() : ch;
+  }
+
+  function render(keyword) {
+    const kw = keyword.trim().toLowerCase();
+    let shown = 0;
+    host.innerHTML = '';
+
+    NAV.groups.forEach(function (group) {
+      const hits = kw
+        ? group.items.filter(function (it) {
+            return (it.name + ' ' + it.desc + ' ' + it.url).toLowerCase().includes(kw);
+          })
+        : group.items;
+
+      if (!hits.length) return;
+      shown += hits.length;
+
+      const sec = document.createElement('section');
+      sec.className = 'group';
+
+      const title = document.createElement('h2');
+      title.className = 'group-title';
+      title.textContent = group.title;
+      sec.appendChild(title);
+
+      const list = document.createElement('div');
+      list.className = 'items';
+
+      hits.forEach(function (it) {
+        const a = document.createElement('a');
+        a.className = 'item';
+        a.href = it.url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.innerHTML =
+          '<span class="badge" aria-hidden="true"></span>' +
+          '<span class="txt"><strong></strong><small></small></span>';
+        a.querySelector('.badge').textContent = badge(it.name);
+        a.querySelector('strong').textContent = it.name;
+        a.querySelector('small').textContent = it.desc;
+        list.appendChild(a);
+      });
+
+      sec.appendChild(list);
+      host.appendChild(sec);
+    });
+
+    empty.hidden = shown !== 0;
+    countEl.textContent = kw ? shown + ' / ' + total + ' 个站点' : total + ' 个站点';
+  }
+
+  input.addEventListener('input', function () { render(input.value); });
+
+  // 按 / 聚焦搜索，Esc 清空并失焦
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && document.activeElement !== input) {
+      e.preventDefault();
+      input.focus();
+    } else if (e.key === 'Escape' && document.activeElement === input) {
+      input.value = '';
+      render('');
+      input.blur();
+    }
+  });
+
+  render('');
+})();
+</script>
+</body>
+</html>

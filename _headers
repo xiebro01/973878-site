@@ -7,11 +7,9 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
 
-# 静态资源长缓存（文件名变了才会更新，所以可以放心缓存）
-/favicon.svg
+# 样式、脚本、图标可以放心长缓存（改文件名或加版本号即可刷新）
+/assets/*
   Cache-Control: public, max-age=604800
 
-/*.css
-  Cache-Control: public, max-age=3600
-/*.js
+/data/*
   Cache-Control: public, max-age=3600
