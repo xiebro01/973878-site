@@ -160,7 +160,7 @@
     try {
       const r = await fetch('/api/games', { headers: { accept: 'application/json' } });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.message || ('HTTP ' + r.status));
+      if (!r.ok || j.error) throw new Error(j.message || ('HTTP ' + r.status));
       render(j);
     } catch (err) {
       // 接口不可用（Steam 只对登录用户开放等）→ 退回本机同步生成的静态文件

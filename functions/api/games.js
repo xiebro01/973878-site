@@ -163,6 +163,10 @@ async function viaPublicPage(id) {
     throw new Error('Steam 资料是私密的：请在隐私设置里把「游戏详情」改为公开');
   }
 
+  if (/Steam Community\s*::\s*Sign In/i.test(html)) {
+    throw new Error('Steam 对服务器 IP 返回了登录页（匿名抓取被挡），请改用本机同步脚本');
+  }
+
   if (/could not be found/i.test(html)) {
     throw new Error(`找不到 Steam 资料「${id}」：自定义 URL 可能不是这个，改用 17 位 SteamID64 更稳`);
   }
