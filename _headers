@@ -7,9 +7,10 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
 
-# 样式、脚本、图标可以放心长缓存（改文件名或加版本号即可刷新）
+# 注意：文件名不会变，所以缓存不能设太长，否则改了样式用户看不到。
+# 页面里的链接带 ?v=版本号，改了 CSS 记得同时把版本号 +1（见 README）。
 /assets/*
-  Cache-Control: public, max-age=604800
+  Cache-Control: public, max-age=600, must-revalidate
 
 /data/*
-  Cache-Control: public, max-age=3600
+  Cache-Control: public, max-age=600
