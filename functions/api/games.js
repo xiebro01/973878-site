@@ -3,15 +3,18 @@
  * ------------------------------------------------------------
  * 环境变量：
  *   STEAM_ID    必填。vanity 名（如 xie73）或 17 位 SteamID64
- *   STEAM_KEY   可选。填了走官方 Web API（能拿到最近两周时长）
+ *   STEAM_KEY   可选。有 key 时走官方 Web API（最稳）；没有则解析公开资料页
+ *
+ * 说明：Steam 已停掉 games?xml=1 的 XML 输出（现在返回 HTML），
+ *      所以无 key 时改为解析资料页 HTML。
  *
  * 排错入口：
- *   /api/games?probe=1   逐条测试 Steam 各个域名是否可达（返回状态码与耗时）
- *   /api/games?debug=1   返回抓到的原始内容
+ *   /api/games?probe=1   测试各域名是否可达
+ *   /api/games?deep=1    返回 HTML 结构诊断（用于调整解析规则）
  */
 
 const STEAM_CDN = 'https://cdn.cloudflare.steamstatic.com/steam/apps';
-const UA = 'Mozilla/5.0 (compatible; 973878-xyz/1.0)';
+const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 const TIMEOUT = 9000;
 
 export async function onRequestGet(context) {
@@ -21,7 +24,7 @@ export async function onRequestGet(context) {
     return json({
       error: 'unhandled',
       message: String((err && err.message) || err),
-      stack: String((err && err.stack) || '').split('\n').slice(0, 6),
+      stack: String((err && err.stack) || '').split('\n').slice(0, 5),
     }, 500);
   }
 }
@@ -30,27 +33,25 @@ async function handle({ request, env }) {
   const url = new URL(request.url);
 
   if (url.searchParams.has('probe')) return json(await probe(env));
+  if (url.searchParams.has('deep')) return json(await deep(env));
 
   const id = String((env && env.STEAM_ID) || '').trim();
   if (!id) {
-    return json({ error: 'missing_env', message: '未配置 STEAM_ID 环境变量' }, 500);
+    return json({ error: 'missing_env', message: '未配置 STEAM_ID 环境变量（Cloudflare Pages → 设置 → 变量和密钥）' }, 500);
   }
 
-  const debug = url.searchParams.has('debug');
   const key = String((env && env.STEAM_KEY) || '').trim();
+  const data = key ? await viaWebApi(id, key) : await viaPublicPage(id);
 
-  const data = key ? await viaWebApi(id, key) : await viaPublicXml(id);
-  if (debug) return json(data);
-
-  return json(data, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=1800' });
+  const debug = url.searchParams.has('debug');
+  return debug ? json(data) : json(data, 200, { 'Cache-Control': 'public, max-age=1800, s-maxage=1800' });
 }
 
 /* ---------------- 探活 ---------------- */
 async function probe(env) {
   const id = String((env && env.STEAM_ID) || 'xie73').trim();
   const targets = [
-    `https://steamcommunity.com/id/${encodeURIComponent(id)}/games?tab=all&xml=1`,
-    `https://steamcommunity.com/profiles/${id}/games?tab=all&xml=1`,
+    gamesUrl(id),
     'https://store.steampowered.com/api/appdetails?appids=1245620&l=schinese',
     'https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?vanityurl=' + encodeURIComponent(id),
   ];
@@ -59,20 +60,44 @@ async function probe(env) {
   for (const t of targets) {
     const started = Date.now();
     try {
-      const r = await fetchT(t, { headers: { 'User-Agent': UA } }, 6000);
+      const r = await fetchT(t, { headers: { 'User-Agent': UA } }, 8000);
       const text = await r.text();
-      out.push({
-        url: t,
-        status: r.status,
-        ms: Date.now() - started,
-        bytes: text.length,
-        head: text.slice(0, 160).replace(/\s+/g, ' '),
-      });
+      out.push({ url: t, status: r.status, ms: Date.now() - started, bytes: text.length, ct: r.headers.get('content-type') });
     } catch (e) {
       out.push({ url: t, error: String((e && e.message) || e), ms: Date.now() - started });
     }
   }
-  return { steam_id: id, has_key: Boolean(env && env.STEAM_KEY), probes: out };
+  return { steam_id: id, has_id: Boolean(env && env.STEAM_ID), has_key: Boolean(env && env.STEAM_KEY), probes: out };
+}
+
+/* ---------------- HTML 结构诊断 ---------------- */
+async function deep(env) {
+  const id = String((env && env.STEAM_ID) || 'xie73').trim();
+  const r = await fetchT(gamesUrl(id), { headers: { 'User-Agent': UA } }, 8000);
+  const html = await r.text();
+
+  const count = (re) => (html.match(re) || []).length;
+  const window = (needle, size = 900) => {
+    const i = html.indexOf(needle);
+    return i < 0 ? null : html.slice(Math.max(0, i - 120), i + size);
+  };
+
+  return {
+    status: r.status,
+    bytes: html.length,
+    private: /This profile is private/i.test(html),
+    has_g_rgAppInfo: /g_rgAppInfo/.test(html),
+    has_g_rgGames: /g_rgGames/.test(html),
+    counts: {
+      gameListRow: count(/gameListRow/g),
+      app_links: count(/store\.steampowered\.com\/app\//g),
+      game_id_attr: count(/id="game_\d+"/g),
+      hours_played: count(/hours_played/g),
+      appid_data: count(/data-appid=/g),
+    },
+    around_app_link: window('store.steampowered.com/app/'),
+    around_g_rgAppInfo: window('g_rgAppInfo'),
+  };
 }
 
 /* ---------------- 官方 Web API ---------------- */
@@ -86,7 +111,7 @@ async function viaWebApi(id, key) {
     );
     const j = await r.json().catch(() => ({}));
     if (!j.response || j.response.success !== 1) {
-      throw new Error(`Steam ID 解析失败（${id}），确认自定义 URL 是否正确`);
+      throw new Error(`Steam ID 解析失败（${id}）`);
     }
     steamid = j.response.steamid;
   }
@@ -96,67 +121,114 @@ async function viaWebApi(id, key) {
     `&steamid=${steamid}&include_appinfo=1&include_played_free_games=1&format=json`,
     { headers: { 'User-Agent': UA } }
   );
-  if (!r.ok) throw new Error(`Steam Web API 返回 ${r.status}（key 无效或资料不公开）`);
+  if (!r.ok) throw new Error(`Steam Web API 返回 ${r.status}`);
 
   const j = await r.json();
   const games = (j.response && j.response.games) || [];
   if (!games.length) throw new Error('库是空的，或「游戏详情」未设为公开');
 
-  return normalize(
-    games.map((g) => ({ id: g.appid, name: g.name, minutes: g.playtime_forever || 0 })),
-    'webapi'
-  );
+  return normalize(games.map((g) => ({ id: g.appid, name: g.name, minutes: g.playtime_forever || 0 })), 'webapi');
 }
 
-/* ---------------- 公开资料 XML ---------------- */
-async function viaPublicXml(id) {
-  const path = /^\d{17}$/.test(id) ? `profiles/${id}` : `id/${encodeURIComponent(id)}`;
-  const target = `https://steamcommunity.com/${path}/games?tab=all&xml=1`;
+/* ---------------- 公开资料页（HTML）---------------- */
+async function viaPublicPage(id) {
+  const r = await fetchT(gamesUrl(id), { headers: { 'User-Agent': UA } });
+  if (!r.ok) throw new Error(`Steam 资料页返回 ${r.status}`);
 
-  const r = await fetchT(target, { headers: { 'User-Agent': UA } });
-  if (!r.ok) throw new Error(`Steam 资料页返回 ${r.status}（检查 ID 与资料公开状态）`);
+  const html = await r.text();
 
-  const xml = await r.text();
-  const usable = xml.replace(/\r/g, '');
-
-  if (/This profile is private/i.test(usable)) {
+  if (/This profile is private/i.test(html)) {
     throw new Error('Steam 资料是私密的：请在隐私设置里把「游戏详情」改为公开');
   }
 
-  const blocks = usable.match(/<game>[\s\S]*?<\/game>/g) || [];
-  if (!blocks.length) {
+  const games = parseGames(html);
+  if (!games.length) {
     return {
       error: 'no_parse',
-      message: '页面拿到了，但没解析出 <game> 节点',
-      hint: '把下面 sample 发给我，看实际格式',
-      sample: usable.slice(0, 600),
+      message: '页面拿到了，但没解析出游戏列表',
+      hint: '访问 /api/games?deep=1 看结构诊断，把结果发给我',
     };
   }
 
-  const games = blocks.map((b) => {
-    const appid = pick(b, 'appID');
-    const name = decode(pick(b, 'name'));
-    const hours = parseFloat((pick(b, 'hoursOnRecord') || '0').replace(/,/g, '')) || 0;
-    return { id: Number(appid), name, minutes: Math.round(hours * 60) };
-  }).filter((g) => g.id && g.name);
+  return normalize(games, 'page');
+}
 
-  return normalize(games, 'xml');
+function gamesUrl(id) {
+  const base = /^\d{17}$/.test(id) ? `profiles/${id}` : `id/${encodeURIComponent(id)}`;
+  return `https://steamcommunity.com/${base}/games?tab=all&sort=playtime`;
+}
+
+/* 兼容几种已知结构：优先 JSON blob，其次行级 DOM */
+function parseGames(html) {
+  const out = [];
+
+  // 1) 新版页面内嵌的 JSON：g_rgAppInfo = {"620":{...}, ...}
+  const blob = html.match(/g_rgAppInfo\s*=\s*(\{[\s\S]*?\});/);
+  if (blob) {
+    try {
+      const obj = JSON.parse(blob[1]);
+      Object.keys(obj).forEach((appid) => {
+        const g = obj[appid] || {};
+        const name = g.name || '';
+        const mins = Math.round((Number(g.hours) || 0) * 60);
+        if (name) out.push({ id: Number(appid), name, minutes: mins });
+      });
+    } catch (_) { /* 落到下面的 DOM 解析 */ }
+  }
+  if (out.length) return out;
+
+  // 2) 行级 DOM：<div class="gameListRow" id="game_620"> … 名称 … 时长
+  const re = /<div[^>]*class="[^"]*gameListRow[^"]*"[^>]*>/g;
+  const marks = [];
+  let m;
+  while ((m = re.exec(html))) {
+    // 排除 gameListRowItem / gameListRowBorder 这类内层元素
+    if (/gameListRow(Item|Border)/.test(m[0])) continue;
+    marks.push(m.index);
+  }
+
+  for (let i = 0; i < marks.length; i++) {
+    const start = marks[i];
+    const end = i + 1 < marks.length ? marks[i + 1] : Math.min(html.length, start + 6000);
+    const chunk = html.slice(start, end);
+
+    const appid = (chunk.match(/id="game_(\d+)"/) ||
+      chunk.match(/store\.steampowered\.com\/app\/(\d+)/) || [])[1];
+    if (!appid) continue;
+
+    const name = (chunk.match(/gameListRowItemName[^>]*>([^<]+)</) ||
+      chunk.match(/<a[^>]+href="[^"]*app\/\d+"[^>]*>([^<]{2,90})</) || [])[1];
+    if (!name) continue;
+
+    const hours = (chunk.match(/([\d.,]+)\s*(?:hrs|小时)/i) || [])[1];
+    out.push({
+      id: Number(appid),
+      name: decode(name.trim()),
+      minutes: Math.round((parseFloat(String(hours || '0').replace(/,/g, '')) || 0) * 60),
+    });
+  }
+
+  return out;
 }
 
 /* ---------------- 统一输出 ---------------- */
 function normalize(games, mode) {
-  const items = games
-    .slice()
-    .sort((a, b) => b.minutes - a.minutes)
-    .map((g) => ({
-      id: g.id,
-      name: g.name,
-      hours: Math.round((g.minutes / 60) * 10) / 10,
-      cover: `${STEAM_CDN}/${g.id}/library_600x900.jpg`,
-      url: `https://store.steampowered.com/app/${g.id}`,
-    }));
+  const seen = new Set();
+  const clean = games.filter((g) => g.id && g.name).filter((g) => {
+    if (seen.has(g.id)) return false;
+    seen.add(g.id);
+    return true;
+  }).sort((a, b) => b.minutes - a.minutes);
 
-  const totalMinutes = games.reduce((s, g) => s + g.minutes, 0);
+  const totalMinutes = clean.reduce((s, g) => s + (g.minutes || 0), 0);
+
+  const items = clean.map((g) => ({
+    id: g.id,
+    name: g.name,
+    hours: Math.round(((g.minutes || 0) / 60) * 10) / 10,
+    cover: `${STEAM_CDN}/${g.id}/library_600x900.jpg`,
+    url: `https://store.steampowered.com/app/${g.id}`,
+  }));
 
   return {
     source: 'steam',
@@ -179,14 +251,8 @@ async function fetchT(url, opts = {}, ms = TIMEOUT) {
   }
 }
 
-function pick(xml, tag) {
-  const m = xml.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
-  if (!m) return '';
-  return m[1].replace(/^<!\[CDATA\[/, '').replace(/\]\]>$/, '').trim();
-}
-
 function decode(s) {
-  return s
+  return String(s)
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
     .replace(/&amp;/g, '&');
@@ -197,7 +263,7 @@ function json(obj, status = 200, extra = {}) {
   try {
     body = JSON.stringify(obj);
   } catch (e) {
-    body = JSON.stringify({ error: 'serialize_failed', message: String(e) });
+    body = JSON.stringify({ error: 'serialize_failed' });
   }
   return new Response(body, {
     status,
