@@ -76,18 +76,72 @@
 
     shelf.innerHTML = data.items.map(function (g) {
       return (
-        '<a class="tile" href="' + g.url + '" target="_blank" rel="noopener noreferrer" title="' + esc(g.name) + '">' +
+        '<a class="tile" href="' + g.url + '" target="_blank" rel="noopener noreferrer" title="' + esc(g.name) + '" data-name="' + esc(g.name) + '">' +
           '<div class="cover">' +
             '<div class="ph">' + esc(g.name) + '</div>' +
             '<img src="' + g.cover + '" alt="" loading="lazy" onerror="this.remove()">' +
           '</div>' +
-          '<h3>' + esc(g.name) + '</h3>' +
+          '<h3>' + esc(g.zh || g.name) + '</h3>' +
+          '<div class="en"' + (g.zh ? '' : ' hidden') + '>' + esc(g.zh ? g.name : '') + '</div>' +
           '<div class="sub">' + fmtHours(g.hours) + '</div>' +
         '</a>'
       );
     }).join('');
 
     source.textContent = 'steam · ' + (data.mode === 'webapi' ? 'web api' : 'public xml');
+    translate();
+  }
+
+  /* 中文名：只给进入视口的卡片补，结果记在 sessionStorage */
+  function translate() {
+    if (IS_LOCAL) return;
+    const tiles = Array.from(document.querySelectorAll('.tile[data-name]'));
+
+    function setZh(tile, zh) {
+      if (!zh) return;
+      const en = tile.getAttribute('data-name');
+      if (zh === en) return;
+      tile.querySelector('h3').textContent = zh;
+      const enEl = tile.querySelector('.en');
+      enEl.textContent = en;
+      enEl.hidden = false;
+    }
+
+    function ask(tile) {
+      const name = tile.getAttribute('data-name');
+      if (!name || tile.dataset.done) return;
+      tile.dataset.done = '1';
+
+      const cacheKey = 'zh:game:' + name;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        if (cached !== '-') setZh(tile, cached);
+        return;
+      }
+
+      fetch('/api/zh?type=game&q=' + encodeURIComponent(name))
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          sessionStorage.setItem(cacheKey, j.zh || '-');
+          if (j.zh) setZh(tile, j.zh);
+        })
+        .catch(function () {});
+    }
+
+    if (!('IntersectionObserver' in window)) {
+      tiles.slice(0, 30).forEach(ask);
+      return;
+    }
+
+    const io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        ask(e.target);
+      });
+    }, { rootMargin: '200px' });
+
+    tiles.forEach(function (t) { io.observe(t); });
   }
 
   function esc(s) {

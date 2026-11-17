@@ -90,10 +90,12 @@ async function neodb(token, debug) {
 
     (j.data || []).forEach((m) => {
       const item = m.item || {};
-      const title = item.display_title || item.localized_title || item.title;
+      const zh = item.localized_title || '';
+      const title = item.display_title || item.title || zh;
       if (!title) return;
       out.push({
         title,
+        titleZh: zh && zh !== title ? zh : null,
         rating10: typeof m.rating_grade === 'number' ? m.rating_grade : null,
         comment: m.comment_text || null,
         shelf,
@@ -134,6 +136,8 @@ function merge(lb, nd, errors) {
 
     return {
       title: x.title,
+      titleZh: (match && match.titleZh) || null,
+      titleEn: match && match.titleZh ? match.title : null,
       year: x.year,
       sources: match ? ['letterboxd', 'neodb'] : ['letterboxd'],
       lb: x.rating5,
@@ -152,6 +156,8 @@ function merge(lb, nd, errors) {
     if (used.has(k)) return;
     items.push({
       title: x.title,
+      titleZh: x.titleZh || null,
+      titleEn: x.titleZh ? x.title : null,
       year: null,
       sources: ['neodb'],
       lb: null,

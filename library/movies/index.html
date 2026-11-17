@@ -80,6 +80,9 @@
     log.innerHTML = data.items.map(function (m) {
       const href = m.url || 'https://letterboxd.com';
       const score = m.score != null ? m.score.toFixed(1) : '—';
+      const zh = m.titleZh || null;
+      const en = m.titleEn || (zh ? m.title : null);
+      const initial = (zh || m.title || '·').trim().charAt(0);
 
       const parts = [];
       if (m.lb != null) parts.push('LB ' + m.lb.toFixed(1));
@@ -87,9 +90,13 @@
       if (m.review) parts.push(m.review);
 
       return (
-        '<div class="log-row">' +
-          '<div class="t"><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(m.title) + '</a>' +
+        '<div class="log-row" data-name="' + esc(m.title) + '" data-has-zh="' + (zh ? '1' : '0') + '">' +
+          '<div class="poster">' +
+            (m.cover ? '<img src="' + m.cover + '" alt="" loading="lazy" onerror="this.parentNode.textContent=\'' + esc(initial) + '\'">' : esc(initial)) +
+          '</div>' +
+          '<div class="t"><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(zh || m.title) + '</a>' +
             (m.year ? '<span class="y">' + m.year + '</span>' : '') +
+            (en ? '<span class="en">' + esc(en) + '</span>' : '') +
           '</div>' +
           '<div class="r">' + score + '</div>' +
           (parts.length ? '<div class="d">' + esc(parts.join(' · ')) + '</div>' : '') +
@@ -102,6 +109,44 @@
     if (s.letterboxd && s.letterboxd.ok) tag.push('letterboxd');
     if (s.neodb && s.neodb.ok) tag.push('neodb');
     source.textContent = tag.length ? tag.join(' + ') : 'letterboxd';
+
+    translate();
+  }
+
+  /* 没有中文名的条目，逐条向 /api/zh 补 */
+  function translate() {
+    if (IS_LOCAL) return;
+    Array.from(document.querySelectorAll('.log-row[data-has-zh="0"]')).slice(0, 40).forEach(function (row) {
+      const name = row.getAttribute('data-name');
+      if (!name) return;
+      const key = 'zh:movie:' + name;
+      const cached = sessionStorage.getItem(key);
+
+      function apply(zh) {
+        if (!zh) return;
+        const a = row.querySelector('.t a');
+        const old = a.textContent;
+        a.textContent = zh;
+        if (!row.querySelector('.en')) {
+          const en = document.createElement('span');
+          en.className = 'en';
+          en.textContent = old;
+          row.querySelector('.t').appendChild(en);
+        }
+      }
+
+      if (cached) {
+        if (cached !== '-') apply(cached);
+        return;
+      }
+      fetch('/api/zh?type=movie&q=' + encodeURIComponent(name))
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          sessionStorage.setItem(key, j.zh || '-');
+          if (j.zh) apply(j.zh);
+        })
+        .catch(function () {});
+    });
   }
 
   async function boot() {

@@ -166,3 +166,13 @@ npx wrangler pages dev . --port 8788
 - **不要用拖拽上传**了：已经接 Git，改一次推一次，别两套并行，容易版本错乱。
 - `robots.txt` 现在是全站禁止收录（只给熟人看）。想被搜到，把那两行注释掉。
 - 微信里分享 `.xyz` 链接可能被提示风险，属正常现象，不是站点问题。
+
+### 中文名
+
+Steam 返回的库名是英文，Letterboxd 也只有原名。所以 /api/zh 会用 Bangumi 的公开搜索接口按条补中文名：
+
+- 前端只给进入视口的卡片发请求（IntersectionObserver），不会一次打 100 个
+- 结果在 Cloudflare 边缘缓存 30 天，浏览器端再存一份 sessionStorage
+- 查不到就保留原名，不会挡住页面
+
+封面来源：Steam 用官方竖版封面（library_600x900），影视用 NeoDB 的 cover_image_url；没有封面时显示首字占位块。
