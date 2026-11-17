@@ -90,8 +90,9 @@ async function neodb(token, debug) {
 
     (j.data || []).forEach((m) => {
       const item = m.item || {};
-      const zh = item.localized_title || '';
-      const title = item.display_title || item.title || zh;
+      // NeoDB 的 localized_title 是 [{lang, text}] 数组，不是字符串
+      const zh = zhOf(item.localized_title) || '';
+      const title = textOf(item.display_title) || textOf(item.title) || zh;
       if (!title) return;
       out.push({
         title,
@@ -196,6 +197,28 @@ function merge(lb, nd, errors) {
 
 /* ---------------- 小工具 ---------------- */
 function round1(n) { return Math.round(n * 10) / 10; }
+
+/* NeoDB 的多语言字段可能是字符串，也可能是 [{lang, text}] */
+function textOf(v) {
+  if (!v) return '';
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) {
+    const zh = v.find((x) => x && /^zh/i.test(x.lang || ''));
+    const first = v[0];
+    return (zh && zh.text) || (first && first.text) || '';
+  }
+  if (typeof v === 'object' && v.text) return v.text;
+  return '';
+}
+
+function zhOf(v) {
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) {
+    const zh = v.find((x) => x && /^zh/i.test(x.lang || ''));
+    return zh ? zh.text : null;
+  }
+  return null;
+}
 
 function pick(xml, tag) {
   const esc = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
