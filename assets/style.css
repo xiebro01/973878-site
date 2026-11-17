@@ -362,8 +362,8 @@ h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em}
   position:absolute;inset:0;
   display:grid;place-items:center;
   font-family:var(--mono);
-  font-size:11px;
-  color:#4E5A66;
+  font-size:19px;
+  color:#39424D;
   padding:8px;
   text-align:center;
 }
@@ -484,6 +484,37 @@ h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em}
   border-radius:4px;
   padding:1px 5px;
 }
+
+/* ---------- 记录页：工具条 ---------- */
+.toolbar{display:flex;align-items:center;gap:8px;margin-top:22px}
+.chip{
+  font-family:var(--sans);
+  font-size:12.5px;
+  color:var(--dim);
+  background:transparent;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:5px 13px;
+  cursor:pointer;
+  transition:color .16s var(--ease),border-color .16s var(--ease),background .16s var(--ease);
+}
+.chip:hover{color:var(--fg);border-color:var(--line-hi)}
+.chip.is-on{color:var(--bg);background:var(--fg);border-color:var(--fg)}
+.chip-note{margin-left:auto;font-size:11.5px;color:#5F6B77;letter-spacing:.02em}
+
+.more{margin-top:36px;text-align:center}
+.btn{
+  font-family:var(--sans);
+  font-size:13px;
+  color:var(--dim);
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:9px 24px;
+  cursor:pointer;
+  transition:color .16s var(--ease),border-color .16s var(--ease),background .16s var(--ease);
+}
+.btn:hover{color:var(--fg);background:var(--card-hi);border-color:var(--line-hi)}
 
 /* ---------- 辅助 ---------- */
 .sr-only{

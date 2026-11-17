@@ -17,11 +17,22 @@
   <p class="page-sub">Steam 库自动同步。玩多久就是多久，不用手记。</p>
 
   <div class="stats" id="stats" hidden></div>
+
+  <div class="toolbar" id="toolbar" hidden>
+    <button class="chip is-on" data-mode="played" type="button">玩过的</button>
+    <button class="chip" data-mode="all" type="button">全部</button>
+    <span class="chip-note mono" id="shown"></span>
+  </div>
+
   <div class="shelf" id="shelf"></div>
+
+  <div class="more" id="more" hidden>
+    <button class="btn" id="more-btn" type="button">加载更多</button>
+  </div>
 
   <div class="empty" id="state" hidden>
     <strong id="state-title">正在读取 Steam 库</strong>
-    <p id="state-text">第一次加载会稍慢一点，之后走缓存。</p>
+    <p id="state-text">第一次加载会稍慢一点。</p>
   </div>
 
   <p class="note" id="note"></p>
@@ -39,20 +50,28 @@
 <script>
 (function () {
   const IS_LOCAL = location.protocol === 'file:';
+  const PAGE = 60;
+
   const shelf = document.getElementById('shelf');
   const stats = document.getElementById('stats');
+  const toolbar = document.getElementById('toolbar');
+  const shownEl = document.getElementById('shown');
+  const moreBox = document.getElementById('more');
+  const moreBtn = document.getElementById('more-btn');
   const state = document.getElementById('state');
   const stateTitle = document.getElementById('state-title');
   const stateText = document.getElementById('state-text');
   const note = document.getElementById('note');
   const source = document.getElementById('source');
 
-  function fail(title, text) {
-    shelf.innerHTML = '';
-    stats.hidden = true;
-    state.hidden = false;
-    stateTitle.textContent = title;
-    stateText.textContent = text;
+  let DATA = null;
+  let mode = 'played';
+  let limit = PAGE;
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   function fmtHours(n) {
@@ -61,7 +80,53 @@
     return (Math.round(n * 10) / 10) + ' 小时';
   }
 
+  function fail(title, text) {
+    shelf.innerHTML = '';
+    stats.hidden = true;
+    toolbar.hidden = true;
+    moreBox.hidden = true;
+    state.hidden = false;
+    stateTitle.textContent = title;
+    stateText.textContent = text;
+  }
+
+  function currentList() {
+    if (!DATA) return [];
+    return mode === 'played' ? DATA.items.filter(function (g) { return g.hours > 0; }) : DATA.items;
+  }
+
+  function tileHtml(g) {
+    const initial = (g.zh || g.name || '·').trim().charAt(0);
+    return (
+      '<a class="tile" href="' + g.url + '" target="_blank" rel="noopener noreferrer" title="' + esc(g.name) + '" data-name="' + esc(g.name) + '">' +
+        '<div class="cover">' +
+          '<div class="ph">' + esc(initial) + '</div>' +
+          '<img src="' + g.cover + '" alt="" loading="lazy" decoding="async" onerror="this.remove()">' +
+        '</div>' +
+        '<h3>' + esc(g.zh || g.name) + '</h3>' +
+        '<div class="en"' + (g.zh ? '' : ' hidden') + '>' + esc(g.zh ? g.name : '') + '</div>' +
+        '<div class="sub">' + fmtHours(g.hours) + '</div>' +
+      '</a>'
+    );
+  }
+
+  function paint(reset) {
+    const list = currentList();
+    const slice = list.slice(0, limit);
+
+    if (reset) shelf.innerHTML = '';
+    const start = reset ? 0 : shelf.children.length;
+    const html = slice.slice(start).map(tileHtml).join('');
+    shelf.insertAdjacentHTML('beforeend', html);
+
+    shownEl.textContent = '显示 ' + Math.min(limit, list.length) + ' / ' + list.length;
+    moreBox.hidden = limit >= list.length;
+
+    translate();
+  }
+
   function render(data) {
+    DATA = data;
     if (!data || !data.items || !data.items.length) {
       fail('库里还没有游戏', '去 Steam 玩一会儿，或者检查「游戏详情」是否设为公开。');
       return;
@@ -69,33 +134,25 @@
 
     state.hidden = true;
     stats.hidden = false;
+    toolbar.hidden = false;
+
+    const played = data.items.filter(function (g) { return g.hours > 0; }).length;
+
     stats.innerHTML =
       '<div class="stat"><b>' + data.total + '</b><span>游戏</span></div>' +
-      '<div class="stat"><b>' + data.hours + '</b><span>累计小时</span></div>' +
+      '<div class="stat"><b>' + (data.hours || 0) + '</b><span>累计小时</span></div>' +
+      '<div class="stat"><b>' + played + '</b><span>玩过</span></div>' +
       '<div class="stat"><b>' + (data.updated || '—') + '</b><span>同步于</span></div>';
 
-    shelf.innerHTML = data.items.map(function (g) {
-      return (
-        '<a class="tile" href="' + g.url + '" target="_blank" rel="noopener noreferrer" title="' + esc(g.name) + '" data-name="' + esc(g.name) + '">' +
-          '<div class="cover">' +
-            '<div class="ph">' + esc(g.name) + '</div>' +
-            '<img src="' + g.cover + '" alt="" loading="lazy" onerror="this.remove()">' +
-          '</div>' +
-          '<h3>' + esc(g.zh || g.name) + '</h3>' +
-          '<div class="en"' + (g.zh ? '' : ' hidden') + '>' + esc(g.zh ? g.name : '') + '</div>' +
-          '<div class="sub">' + fmtHours(g.hours) + '</div>' +
-        '</a>'
-      );
-    }).join('');
-
-    source.textContent = 'steam · ' + (data.mode === 'webapi' ? 'web api' : 'public xml');
-    translate();
+    source.textContent = 'steam · ' + (data.mode === 'webapi' ? 'web api' : data.mode || 'sync');
+    limit = PAGE;
+    paint(true);
   }
 
   /* 中文名：只给进入视口的卡片补，结果记在 sessionStorage */
   function translate() {
     if (IS_LOCAL) return;
-    const tiles = Array.from(document.querySelectorAll('.tile[data-name]'));
+    const tiles = Array.from(shelf.querySelectorAll('.tile[data-name]'));
 
     function setZh(tile, zh) {
       if (!zh) return;
@@ -112,8 +169,8 @@
       if (!name || tile.dataset.done) return;
       tile.dataset.done = '1';
 
-      const cacheKey = 'zh:game:' + name;
-      const cached = sessionStorage.getItem(cacheKey);
+      const key = 'zh:game:' + name;
+      const cached = sessionStorage.getItem(key);
       if (cached) {
         if (cached !== '-') setZh(tile, cached);
         return;
@@ -122,14 +179,14 @@
       fetch('/api/zh?type=game&q=' + encodeURIComponent(name))
         .then(function (r) { return r.json(); })
         .then(function (j) {
-          sessionStorage.setItem(cacheKey, j.zh || '-');
+          sessionStorage.setItem(key, j.zh || '-');
           if (j.zh) setZh(tile, j.zh);
         })
         .catch(function () {});
     }
 
     if (!('IntersectionObserver' in window)) {
-      tiles.slice(0, 30).forEach(ask);
+      tiles.slice(0, 24).forEach(ask);
       return;
     }
 
@@ -144,15 +201,25 @@
     tiles.forEach(function (t) { io.observe(t); });
   }
 
-  function esc(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
+  toolbar.addEventListener('click', function (e) {
+    const btn = e.target.closest('.chip');
+    if (!btn) return;
+    mode = btn.dataset.mode;
+    Array.from(toolbar.querySelectorAll('.chip')).forEach(function (b) {
+      b.classList.toggle('is-on', b === btn);
+    });
+    limit = PAGE;
+    paint(true);
+  });
+
+  moreBtn.addEventListener('click', function () {
+    limit += PAGE;
+    paint(false);
+  });
 
   async function boot() {
     if (IS_LOCAL) {
-      note.innerHTML = '本地预览模式，显示的是示例数据。部署后这里会变成你真实的 Steam 库。';
+      note.innerHTML = '本地预览模式，显示的是示例数据。';
       render(window.DEMO && window.DEMO.games);
       return;
     }
@@ -163,21 +230,19 @@
       if (!r.ok || j.error) throw new Error(j.message || ('HTTP ' + r.status));
       render(j);
     } catch (err) {
-      // 接口不可用（Steam 只对登录用户开放等）→ 退回本机同步生成的静态文件
       try {
         const r2 = await fetch('/data/games.json?t=' + Date.now(), { cache: 'no-store' });
         if (r2.ok) {
           const j2 = await r2.json();
           render(j2);
-          note.innerHTML = '数据来自本机同步，更新于 <b>' + (j2.updated || '—') + '</b>。' +
-            '想刷新就在电脑上运行 <code>tools/sync-steam.ps1</code>，然后 push。';
+          note.innerHTML = '数据来自本机同步，更新于 <b>' + (j2.updated || '—') + '</b>。';
           source.textContent = 'steam · 本机同步';
           return;
         }
-      } catch (_) { /* 没有静态文件就走下面的报错 */ }
+      } catch (_) {}
 
       fail('读不到 Steam 库', String(err.message || err));
-      note.innerHTML = 'Steam 对服务器 IP 返回了登录页。解决办法：在本机运行 <code>tools/sync-steam.ps1</code> 生成 <code>data/games.json</code>。';
+      note.innerHTML = '检查环境变量 <code>STEAM_KEY</code> 与 <code>STEAM_ID</code>，以及 Steam 资料的「游戏详情」是否公开。';
     }
   }
 
