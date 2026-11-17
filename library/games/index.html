@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>游戏 — 973878.xyz</title>
-<meta name="description" content="玩过的游戏记录。" />
+<meta name="description" content="Steam 游戏库：玩过的、时长、封面。" />
 <meta name="theme-color" content="#0B0D10" />
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../../assets/style.css" />
@@ -14,21 +14,108 @@
 
   <a class="back" href="../../">← 973878.xyz</a>
   <h1 class="page-title">游戏</h1>
-  <p class="page-sub">玩过的、在玩的、弃掉的。评分和短评都来自 Bangumi，标记完自动同步。</p>
+  <p class="page-sub">Steam 库自动同步。玩多久就是多久，不用手记。</p>
 
-  <div class="empty">
-    <strong>正在接入 Bangumi</strong>
-    <p>第一批数据上墙后，这里会按「在玩 / 通关 / 弃坑」排成一面封面墙，每张卡片带年份、评分和一句话短评。</p>
-    <span class="mono">下一步：绑定 Bangumi 用户名</span>
+  <div class="stats" id="stats" hidden></div>
+  <div class="shelf" id="shelf"></div>
+
+  <div class="empty" id="state" hidden>
+    <strong id="state-title">正在读取 Steam 库</strong>
+    <p id="state-text">第一次加载会稍慢一点，之后走缓存。</p>
   </div>
+
+  <p class="note" id="note"></p>
 
   <footer class="foot">
     <a href="../../">首页</a>
-    <a href="https://bgm.tv" target="_blank" rel="noopener noreferrer">Bangumi</a>
+    <a href="https://steamcommunity.com" target="_blank" rel="noopener noreferrer">Steam</a>
     <span class="spacer"></span>
-    <span class="mono">973878.xyz</span>
+    <span class="mono" id="source"></span>
   </footer>
 
 </main>
+
+<script src="../../data/demo.js"></script>
+<script>
+(function () {
+  const IS_LOCAL = location.protocol === 'file:';
+  const shelf = document.getElementById('shelf');
+  const stats = document.getElementById('stats');
+  const state = document.getElementById('state');
+  const stateTitle = document.getElementById('state-title');
+  const stateText = document.getElementById('state-text');
+  const note = document.getElementById('note');
+  const source = document.getElementById('source');
+
+  function fail(title, text) {
+    shelf.innerHTML = '';
+    stats.hidden = true;
+    state.hidden = false;
+    stateTitle.textContent = title;
+    stateText.textContent = text;
+  }
+
+  function fmtHours(n) {
+    if (!n) return '未玩';
+    if (n < 1) return Math.round(n * 60) + ' 分钟';
+    return (Math.round(n * 10) / 10) + ' 小时';
+  }
+
+  function render(data) {
+    if (!data || !data.items || !data.items.length) {
+      fail('库里还没有游戏', '去 Steam 玩一会儿，或者检查「游戏详情」是否设为公开。');
+      return;
+    }
+
+    state.hidden = true;
+    stats.hidden = false;
+    stats.innerHTML =
+      '<div class="stat"><b>' + data.total + '</b><span>游戏</span></div>' +
+      '<div class="stat"><b>' + data.hours + '</b><span>累计小时</span></div>' +
+      '<div class="stat"><b>' + (data.updated || '—') + '</b><span>同步于</span></div>';
+
+    shelf.innerHTML = data.items.map(function (g) {
+      return (
+        '<a class="tile" href="' + g.url + '" target="_blank" rel="noopener noreferrer" title="' + esc(g.name) + '">' +
+          '<div class="cover">' +
+            '<div class="ph">' + esc(g.name) + '</div>' +
+            '<img src="' + g.cover + '" alt="" loading="lazy" onerror="this.remove()">' +
+          '</div>' +
+          '<h3>' + esc(g.name) + '</h3>' +
+          '<div class="sub">' + fmtHours(g.hours) + '</div>' +
+        '</a>'
+      );
+    }).join('');
+
+    source.textContent = 'steam · ' + (data.mode === 'webapi' ? 'web api' : 'public xml');
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function boot() {
+    if (IS_LOCAL) {
+      note.innerHTML = '本地预览模式，显示的是示例数据。部署后这里会变成你真实的 Steam 库。';
+      render(window.DEMO && window.DEMO.games);
+      return;
+    }
+
+    try {
+      const r = await fetch('/api/games', { headers: { accept: 'application/json' } });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message || ('HTTP ' + r.status));
+      render(j);
+    } catch (err) {
+      fail('读不到 Steam 库', String(err.message || err));
+      note.innerHTML = '检查 Cloudflare Pages 的环境变量 <code>STEAM_ID</code>，以及 Steam 资料的「游戏详情」是否为公开。';
+    }
+  }
+
+  boot();
+})();
+</script>
 </body>
 </html>

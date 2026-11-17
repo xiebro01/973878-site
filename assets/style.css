@@ -163,7 +163,7 @@ h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em}
   margin:10px 0 0;
   font-size:14px;
   color:var(--dim);
-  max-width:52ch;
+  max-width:34em;
 }
 
 /* ---------- 搜索 ---------- */
@@ -306,6 +306,142 @@ h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em}
   color:var(--dim);
 }
 .empty .mono{color:#5F6B77;font-size:12px;display:inline-block;margin-top:16px}
+
+/* ---------- 记录页：统计条 ---------- */
+.stats{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px 40px;
+  margin-top:34px;
+  padding:18px 0;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.stat b{
+  display:block;
+  font-family:var(--mono);
+  font-size:22px;
+  font-weight:600;
+  letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;
+}
+.stat span{
+  display:block;
+  font-size:11.5px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--dim);
+  margin-top:2px;
+}
+
+/* ---------- 记录页：封面墙（游戏）---------- */
+.shelf{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
+  gap:20px 16px;
+  margin-top:30px;
+}
+.tile{min-width:0}
+.tile .cover{
+  position:relative;
+  aspect-ratio:2/3;
+  border-radius:8px;
+  overflow:hidden;
+  background:var(--card);
+  border:1px solid var(--line);
+}
+.tile .cover img{
+  width:100%;height:100%;
+  object-fit:cover;
+  display:block;
+  transition:transform .3s var(--ease),filter .3s var(--ease);
+  filter:saturate(.92) brightness(.94);
+}
+.tile:hover .cover img{transform:scale(1.03);filter:saturate(1) brightness(1)}
+.tile .cover .ph{
+  position:absolute;inset:0;
+  display:grid;place-items:center;
+  font-family:var(--mono);
+  font-size:11px;
+  color:#4E5A66;
+  padding:8px;
+  text-align:center;
+}
+.tile h3{
+  font-size:12.5px;
+  font-weight:500;
+  line-height:1.45;
+  margin:9px 0 0;
+  min-height:2.9em;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.tile .sub{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--dim);
+  margin-top:3px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- 记录页：清单（影视）---------- */
+.log{margin-top:26px;border-top:1px solid var(--line)}
+.stats + .log{border-top:0;margin-top:10px}
+.log-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:4px 20px;
+  align-items:baseline;
+  padding:13px 2px;
+  border-bottom:1px solid var(--line);
+  transition:background .16s var(--ease);
+}
+.log-row:hover{background:rgba(255,255,255,.018)}
+.log-row .t{
+  font-size:14.5px;
+  font-weight:500;
+  line-height:1.45;
+}
+.log-row .y{
+  font-family:var(--mono);
+  font-size:11.5px;
+  color:var(--dim);
+  margin-left:8px;
+  font-variant-numeric:tabular-nums;
+}
+.log-row .r{
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--accent);
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.log-row .d{
+  grid-column:1/-1;
+  font-size:12.5px;
+  color:var(--dim);
+  line-height:1.6;
+  margin-top:2px;
+}
+
+/* ---------- 状态提示 ---------- */
+.note{
+  margin-top:26px;
+  font-size:12.5px;
+  color:#5F6B77;
+  line-height:1.7;
+}
+.note code{
+  font-family:var(--mono);
+  font-size:12px;
+  color:var(--dim);
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:4px;
+  padding:1px 5px;
+}
 
 /* ---------- 辅助 ---------- */
 .sr-only{

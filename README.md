@@ -12,10 +12,14 @@
 ├── index.html              首页（三个入口）
 ├── nav/index.html          导航站（搜索 + 分组宫格）
 ├── library/
-│   ├── games/index.html    游戏记录（待接入 Bangumi）
-│   └── movies/index.html   影视记录（待接入）
+│   ├── games/index.html    游戏墙（Steam 自动同步）
+│   └── movies/index.html   影视清单（Letterboxd 自动同步）
+├── functions/api/
+│   ├── games.js            GET /api/games   代理 Steam
+│   └── movies.js           GET /api/movies  代理 Letterboxd RSS
 ├── assets/style.css        设计系统，全站共用这一份
 ├── data/nav.js             导航数据，加一条改一行
+├── data/demo.js            仅本地预览用的示例数据（线上不生效）
 ├── 404.html                自定义 404
 ├── favicon.svg
 ├── robots.txt              默认不让搜索引擎收录
@@ -23,6 +27,34 @@
 ├── _headers                安全头与缓存
 └── shortlink-worker.js     可选：进阶短链（不影响正常使用）
 ```
+
+---
+
+## 数据从哪来
+
+两个页面都通过同源的 `/api/*` 取数，浏览器只跟自己的域名通信，**国内访问不会被墙**。
+
+| 页面 | 接口 | 需要的环境变量 |
+|---|---|---|
+| 游戏 | `/api/games` | `STEAM_ID`（必填）、`STEAM_KEY`（可选） |
+| 影视 | `/api/movies` | `LETTERBOXD_USER` |
+
+配置位置：Cloudflare Pages → 项目 → **设置 → 环境变量**，加完要**重新部署**一次才生效。
+
+### Steam
+
+- `STEAM_ID` 填个人主页 URL 里的那段，比如 `https://steamcommunity.com/id/xiebro01` 就填 `xiebro01`；也可以直接填 17 位 SteamID64。
+- 不填 `STEAM_KEY` 时走公开资料页的 XML（**不需要 key**），但前提是 Steam 隐私设置里「游戏详情」为**公开**。
+- 填了 `STEAM_KEY` 会走官方 Web API，还能拿到「最近两周时长」，数据更全。
+- 排查：访问 `/api/games?debug=1` 看原始返回。
+
+### Letterboxd
+
+- `LETTERBOXD_USER` 填个人主页 URL 里的用户名，比如 `https://letterboxd.com/xie/` 就填 `xie`。
+- 数据来自公开 RSS，不需要登录、不需要 key。
+- 排查：访问 `/api/movies?debug=1` 看 RSS 原文。
+
+> NeoDB 也可以做同一件事，但它的个人数据需要 access token，更适合放在环境变量里由 `functions/api/neodb.js` 代理，需要时再加。
 
 ---
 
@@ -85,15 +117,19 @@
 
 ## 本地预览
 
-`index.html` 和导航页都用的是相对路径，**直接双击就能看**。
+**直接双击 `index.html`** 就能看首页和导航页（都用的相对路径）。
 
-如果想让 `/go/xxx` 这类根路径也生效（它们依赖 Cloudflare）：
+`/library/*` 两个页面在 `file://` 下会自动切到 `data/demo.js` 的示例数据，方便看设计；部署后自动改成读取真实接口。
+
+如果想让 `/go/xxx` 这类根路径也生效（它们依赖 Cloudflare），或者想连本地接口调试：
 
 ```powershell
 cd D:\Projects\973878
-python -m http.server 8000
-# 打开 http://localhost:8000
+npx wrangler pages dev . --port 8788
+# 打开 http://localhost:8788
 ```
+
+（`wrangler` 会把 `functions/` 一起跑起来，但要先配好环境变量，否则接口会返回「未配置」。）
 
 ---
 
@@ -115,8 +151,9 @@ python -m http.server 8000
 
 ## 下一步
 
-- [ ] 接入 Bangumi：游戏 + 动画记录（CORS 已确认可直接 fetch，不需要后端）
-- [ ] 接入 Letterboxd 或 NeoDB：电影记录（需要一个 Pages Function 做代理）
+- [ ] 配好 `STEAM_ID` / `LETTERBOXD_USER`，让两个记录页出真数据
+- [ ] 可选：加 `STEAM_KEY`，游戏页就能显示「最近两周在玩」
+- [ ] 可选：NeoDB 也接进来（token 走环境变量 + 一个 `functions/api/neodb.js`）
 - [ ] 可选：Cloudflare Access 保护 `/library/*`
 - [ ] 可选：真想写长文时，另开 `blog.973878.xyz`
 

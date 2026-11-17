@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>影视 — 973878.xyz</title>
-<meta name="description" content="看过的电影与剧集记录。" />
+<meta name="description" content="Letterboxd 观影记录：看过的、评分、短评。" />
 <meta name="theme-color" content="#0B0D10" />
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
 <link rel="stylesheet" href="../../assets/style.css" />
@@ -14,21 +14,105 @@
 
   <a class="back" href="../../">← 973878.xyz</a>
   <h1 class="page-title">影视</h1>
-  <p class="page-sub">电影与剧集。看完随手记一笔，年末回头翻会很有意思。</p>
+  <p class="page-sub">在 Letterboxd 标记完，这里自动列出。评级和短评都是你当时写的。</p>
 
-  <div class="empty">
-    <strong>正在接入观影记录</strong>
-    <p>接入后这里是一面 2:3 的海报墙，按年份和评分排列，点开能看到你的短评。</p>
-    <span class="mono">下一步：选择 Letterboxd 或 NeoDB</span>
+  <div class="stats" id="stats" hidden></div>
+  <div class="log" id="log"></div>
+
+  <div class="empty" id="state" hidden>
+    <strong id="state-title">正在读取观影记录</strong>
+    <p id="state-text">第一次加载会稍慢一点。</p>
   </div>
+
+  <p class="note" id="note"></p>
 
   <footer class="foot">
     <a href="../../">首页</a>
     <a href="https://letterboxd.com" target="_blank" rel="noopener noreferrer">Letterboxd</a>
     <span class="spacer"></span>
-    <span class="mono">973878.xyz</span>
+    <span class="mono" id="source"></span>
   </footer>
 
 </main>
+
+<script src="../../data/demo.js"></script>
+<script>
+(function () {
+  const IS_LOCAL = location.protocol === 'file:';
+  const log = document.getElementById('log');
+  const stats = document.getElementById('stats');
+  const state = document.getElementById('state');
+  const stateTitle = document.getElementById('state-title');
+  const stateText = document.getElementById('state-text');
+  const note = document.getElementById('note');
+  const source = document.getElementById('source');
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function fail(title, text) {
+    log.innerHTML = '';
+    stats.hidden = true;
+    state.hidden = false;
+    stateTitle.textContent = title;
+    stateText.textContent = text;
+  }
+
+  function render(data) {
+    if (!data || !data.items || !data.items.length) {
+      fail('还没有观影记录', '去 Letterboxd 标记一部电影，这里就会多一行。');
+      return;
+    }
+
+    state.hidden = true;
+    stats.hidden = false;
+
+    const stars = data.average != null ? data.average.toFixed(1) : '—';
+    stats.innerHTML =
+      '<div class="stat"><b>' + data.total + '</b><span>部</span></div>' +
+      '<div class="stat"><b>' + stars + '</b><span>平均评分</span></div>' +
+      '<div class="stat"><b>' + (data.updated || '—') + '</b><span>同步于</span></div>';
+
+    log.innerHTML = data.items.map(function (m) {
+      const rating = m.rating != null ? '★ ' + m.rating.toFixed(1) : '未评分';
+      const href = m.url || 'https://letterboxd.com';
+      return (
+        '<div class="log-row">' +
+          '<div class="t"><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(m.title) + '</a>' +
+            (m.year ? '<span class="y">' + m.year + '</span>' : '') +
+          '</div>' +
+          '<div class="r">' + rating + '</div>' +
+          (m.review ? '<div class="d">' + esc(m.review) + '</div>' : '') +
+        '</div>'
+      );
+    }).join('');
+
+    source.textContent = 'letterboxd';
+  }
+
+  async function boot() {
+    if (IS_LOCAL) {
+      note.innerHTML = '本地预览模式，显示的是示例数据。部署后这里会变成你真实的观影记录。';
+      render(window.DEMO && window.DEMO.movies);
+      return;
+    }
+
+    try {
+      const r = await fetch('/api/movies', { headers: { accept: 'application/json' } });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.message || ('HTTP ' + r.status));
+      render(j);
+    } catch (err) {
+      fail('读不到观影记录', String(err.message || err));
+      note.innerHTML = '检查 Cloudflare Pages 的环境变量 <code>LETTERBOXD_USER</code> 是否填了你的用户名。';
+    }
+  }
+
+  boot();
+})();
+</script>
 </body>
 </html>
