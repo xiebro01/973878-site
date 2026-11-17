@@ -31,11 +31,12 @@ export async function onRequestGet(context) {
 
 async function handle({ request, env }) {
   const url = new URL(request.url);
+  const override = url.searchParams.get('id');
 
-  if (url.searchParams.has('probe')) return json(await probe(env));
-  if (url.searchParams.has('deep')) return json(await deep(env));
+  if (url.searchParams.has('probe')) return json(await probe(env, override));
+  if (url.searchParams.has('deep')) return json(await deep(env, override));
 
-  const id = String((env && env.STEAM_ID) || '').trim();
+  const id = String(override || (env && env.STEAM_ID) || '').trim();
   if (!id) {
     return json({ error: 'missing_env', message: '未配置 STEAM_ID 环境变量（Cloudflare Pages → 设置 → 变量和密钥）' }, 500);
   }
@@ -48,8 +49,8 @@ async function handle({ request, env }) {
 }
 
 /* ---------------- 探活 ---------------- */
-async function probe(env) {
-  const id = String((env && env.STEAM_ID) || 'xie73').trim();
+async function probe(env, override) {
+  const id = String(override || (env && env.STEAM_ID) || 'xie73').trim();
   const targets = [
     gamesUrl(id),
     'https://store.steampowered.com/api/appdetails?appids=1245620&l=schinese',
@@ -71,8 +72,8 @@ async function probe(env) {
 }
 
 /* ---------------- HTML 结构诊断 ---------------- */
-async function deep(env) {
-  const id = String((env && env.STEAM_ID) || 'xie73').trim();
+async function deep(env, override) {
+  const id = String(override || (env && env.STEAM_ID) || 'xie73').trim();
   const target = gamesUrl(id);
   const r = await fetchT(target, { headers: { 'User-Agent': UA } }, 8000);
   const html = await r.text();
