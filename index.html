@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>973878.xyz — 一个数字，一个入口</title>
+<meta name="description" content="973878.xyz 的个人入口页：博客、项目与联系方式。" />
+<meta name="theme-color" content="#0a0c0f" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="973878.xyz" />
+<meta property="og:title" content="973878.xyz" />
+<meta property="og:description" content="一个数字，一个入口。" />
+<meta property="og:url" content="https://973878.xyz/" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<style>
+/* ============================================================
+   主题变量：想换配色只改这里
+   ============================================================ */
+:root{
+  --bg:#0a0c0f;
+  --glow:#16242e;
+  --card:#131a21;
+  --card-hi:#1b242d;
+  --line:rgba(255,255,255,.08);
+  --fg:#e9eef3;
+  --dim:#8b98a5;
+  --accent:#ffc85c;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --r:18px;
+}
+@media (prefers-color-scheme:light){
+  :root{
+    --bg:#f6f4ef;
+    --glow:#ffe9c4;
+    --card:#fffdf8;
+    --card-hi:#ffffff;
+    --line:rgba(20,25,30,.10);
+    --fg:#151a1f;
+    --dim:#5f6b77;
+    --accent:#a9650d;
+  }
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  min-height:100vh;
+  background:radial-gradient(1100px 560px at 50% -12%,var(--glow) 0%,transparent 62%),var(--bg);
+  color:var(--fg);
+  font-family:var(--sans);
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+.wrap{width:min(100% - 40px,720px);margin-inline:auto;padding:72px 0 40px}
+
+/* ---------- 顶部 ---------- */
+.pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:5px 12px;border:1px solid var(--line);border-radius:999px;
+  font-size:12.5px;color:var(--dim);letter-spacing:.02em;
+  background:var(--card);
+}
+.dot{width:6px;height:6px;border-radius:50%;background:#48d597;box-shadow:0 0 0 4px rgba(72,213,151,.15)}
+
+h1{
+  font-family:var(--mono);
+  font-size:clamp(42px,10.5vw,76px);
+  font-weight:700;
+  letter-spacing:-.01em;
+  line-height:1.02;
+  margin:22px 0 0;
+  cursor:copy;
+  user-select:none;
+}
+h1 .tld{color:var(--accent);opacity:.9}
+.tagline{margin:14px 0 0;font-size:clamp(15px,3.6vw,17px);color:var(--dim)}
+.intro{margin:18px 0 0;max-width:52ch;font-size:15px;color:var(--dim)}
+.intro strong{color:var(--fg);font-weight:600}
+
+/* ---------- 链接卡片 ---------- */
+.links{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:12px;
+  margin:40px 0 0;
+}
+.card{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:14px;
+  padding:16px 18px;
+  border:1px solid var(--line);
+  border-radius:var(--r);
+  background:var(--card);
+  transition:background .18s ease,border-color .18s ease,transform .18s ease;
+}
+.card:hover,.card:focus-visible{
+  background:var(--card-hi);
+  border-color:color-mix(in srgb,var(--accent) 45%,var(--line));
+  transform:translateY(-2px);
+  outline:none;
+}
+.card .idx{
+  font-family:var(--mono);font-size:12px;color:var(--accent);
+  letter-spacing:.06em;opacity:.85;
+}
+.card strong{display:block;font-size:15px;font-weight:600}
+.card small{display:block;font-size:12.5px;color:var(--dim);margin-top:1px}
+.card .go{color:var(--dim);transition:transform .18s ease,color .18s ease}
+.card:hover .go{transform:translateX(3px);color:var(--accent)}
+
+/* ---------- 折腾清单 ---------- */
+.block{margin-top:52px}
+.block h2{
+  font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--dim);font-weight:600;margin:0 0 14px;
+}
+.now{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.now li{
+  position:relative;padding-left:22px;font-size:14.5px;color:var(--fg);
+}
+.now li::before{
+  content:"";position:absolute;left:4px;top:.72em;
+  width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.55;
+}
+.now li span{color:var(--dim)}
+
+/* ---------- 页脚 ---------- */
+.footer{
+  margin-top:64px;padding-top:22px;border-top:1px solid var(--line);
+  display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between;
+  font-size:12.5px;color:var(--dim);
+}
+.footer .mono{font-family:var(--mono)}
+
+/* ---------- 复制提示 ---------- */
+#toast{
+  position:fixed;left:50%;bottom:32px;transform:translate(-50%,16px);
+  background:var(--fg);color:var(--bg);
+  font-size:13px;font-weight:600;padding:9px 16px;border-radius:999px;
+  opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;
+  box-shadow:0 8px 30px rgba(0,0,0,.28);
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header>
+    <span class="pill"><i class="dot"></i>在线 · 长期续费中</span>
+    <h1 id="number" title="点击复制域名">973878<span class="tld">.xyz</span></h1>
+    <p class="tagline">一个数字，一个入口。</p>
+    <p class="intro">
+      这里是我的个人主页。写字、做点小东西、偶尔折腾一下服务器。
+      所有入口都收在这一个域名下 —— <strong>973878</strong>。
+    </p>
+  </header>
+
+  <!-- 链接卡片会在下面 JS 的 LINKS 数组里生成 -->
+  <nav class="links" id="links" aria-label="主要入口"></nav>
+
+  <section class="block">
+    <h2>最近在折腾</h2>
+    <ul class="now">
+      <li>把这个页面放上 Cloudflare Pages <span>· 域名指向 973878.xyz</span></li>
+      <li>开启 Email Routing，用 hi@973878.xyz 收信 <span>· 转发到常用邮箱</span></li>
+      <li>下一步：给家里的设备挂个子域 <span>· nas.973878.xyz</span></li>
+    </ul>
+  </section>
+
+  <footer class="footer">
+    <span>© <span id="year">2026</span> 973878.xyz</span>
+    <span class="mono">Built with Cloudflare Pages</span>
+  </footer>
+
+</main>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<noscript>
+  <div class="wrap" style="padding-top:0">
+    <p>主要入口：</p>
+    <ul>
+      <li><a href="/blog/">博客</a></li>
+      <li><a href="https://github.com/yourname">GitHub</a></li>
+      <li><a href="mailto:hi@973878.xyz">hi@973878.xyz</a></li>
+      <li><a href="/go/github">短链示例</a></li>
+    </ul>
+  </div>
+</noscript>
+
+<script>
+/* ============================================================
+   改这里：增加 / 删除入口，改 title / desc / href 就行
+   ext: true 表示外部链接（新窗口打开）
+   ============================================================ */
+const LINKS = [
+  { idx:'01', title:'博客',      desc:'写点东西，慢慢攒',      href:'/blog/',                        ext:false },
+  { idx:'02', title:'GitHub',    desc:'代码和半成品项目',      href:'https://github.com/yourname',   ext:true  },
+  { idx:'03', title:'邮箱',      desc:'hi@973878.xyz',        href:'mailto:hi@973878.xyz',          ext:false },
+  { idx:'04', title:'短链演示',   desc:'/go/github 这种跳转',   href:'/go/github',                    ext:false },
+];
+
+const wrap = document.getElementById('links');
+wrap.innerHTML = LINKS.map(l => `
+  <a class="card" href="${l.href}"${l.ext ? ' target="_blank" rel="noopener noreferrer"' : ''}>
+    <span class="idx">${l.idx}</span>
+    <span>
+      <strong>${l.title}</strong>
+      <small>${l.desc}</small>
+    </span>
+    <span class="go" aria-hidden="true">${l.ext ? '↗' : '→'}</span>
+  </a>`).join('');
+
+/* 年份 */
+document.getElementById('year').textContent = new Date().getFullYear();
+
+/* 点标题复制域名 */
+const toast = document.getElementById('toast');
+const numberEl = document.getElementById('number');
+numberEl.addEventListener('click', async () => {
+  const text = '973878.xyz';
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+  }
+  toast.textContent = '已复制 973878.xyz';
+  toast.classList.add('show');
+  clearTimeout(window.__t);
+  window.__t = setTimeout(() => toast.classList.remove('show'), 1600);
+});
+</script>
+</body>
+</html>

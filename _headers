@@ -1,0 +1,17 @@
+# Cloudflare Pages 响应头
+# 文档：https://developers.cloudflare.com/pages/configuration/headers/
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+# 静态资源长缓存（文件名变了才会更新，所以可以放心缓存）
+/favicon.svg
+  Cache-Control: public, max-age=604800
+
+/*.css
+  Cache-Control: public, max-age=3600
+/*.js
+  Cache-Control: public, max-age=3600

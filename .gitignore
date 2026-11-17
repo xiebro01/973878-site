@@ -1,0 +1,17 @@
+# ---- 本地预览 / 临时产物（不需要上线的）----
+preview.png
+*.log
+*.tmp
+
+# ---- 系统垃圾文件 ----
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ---- 编辑器 / IDE ----
+.vscode/
+.idea/
+*.swp
+
+# ---- 依赖（这个项目用不到，留着不碍事）----
+node_modules/

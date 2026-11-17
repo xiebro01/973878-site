@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# 不想被搜索引擎收录就改成：
+# User-agent: *
+# Disallow: /
