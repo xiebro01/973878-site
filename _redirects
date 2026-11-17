@@ -3,7 +3,7 @@
 # 文档：  https://developers.cloudflare.com/pages/configuration/redirects/
 
 # ---- 短链（改这里的 target 就行）----
-/go/gh      https://github.com/yourname          302
+/go/gh      https://github.com/xiebro01       302
 /go/bgm     https://bgm.tv                       302
 /go/lb      https://letterboxd.com               302
 /go/nav     /nav/                                302

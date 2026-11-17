@@ -10,9 +10,9 @@ window.NAV = {
     {
       title: '常用',
       items: [
-        { name: '邮箱',       url: 'https://mail.google.com',   desc: 'hi@973878.xyz 转发到这里' },
+        { name: '邮箱',       url: 'https://mail.google.com',   desc: 'xie@973878.xyz · 转发到常用邮箱' },
         { name: 'Cloudflare', url: 'https://dash.cloudflare.com', desc: 'DNS · Pages · 邮件路由' },
-        { name: 'GitHub',     url: 'https://github.com',        desc: '仓库与自动部署' },
+        { name: 'GitHub',     url: 'https://github.com/xiebro01', desc: '我的仓库' },
         { name: 'Spaceship',  url: 'https://www.spaceship.com', desc: '域名续费与转移' },
         { name: 'GitHub Desktop', url: 'https://desktop.github.com', desc: '提交与推送' }
       ]
