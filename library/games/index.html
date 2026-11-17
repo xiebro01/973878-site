@@ -163,8 +163,21 @@
       if (!r.ok) throw new Error(j.message || ('HTTP ' + r.status));
       render(j);
     } catch (err) {
+      // 接口不可用（Steam 只对登录用户开放等）→ 退回本机同步生成的静态文件
+      try {
+        const r2 = await fetch('/data/games.json?t=' + Date.now(), { cache: 'no-store' });
+        if (r2.ok) {
+          const j2 = await r2.json();
+          render(j2);
+          note.innerHTML = '数据来自本机同步，更新于 <b>' + (j2.updated || '—') + '</b>。' +
+            '想刷新就在电脑上运行 <code>tools/sync-steam.ps1</code>，然后 push。';
+          source.textContent = 'steam · 本机同步';
+          return;
+        }
+      } catch (_) { /* 没有静态文件就走下面的报错 */ }
+
       fail('读不到 Steam 库', String(err.message || err));
-      note.innerHTML = '检查 Cloudflare Pages 的环境变量 <code>STEAM_ID</code>，以及 Steam 资料的「游戏详情」是否为公开。';
+      note.innerHTML = 'Steam 对服务器 IP 返回了登录页。解决办法：在本机运行 <code>tools/sync-steam.ps1</code> 生成 <code>data/games.json</code>。';
     }
   }
 
