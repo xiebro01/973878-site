@@ -97,11 +97,13 @@
 
   function tileHtml(g) {
     const initial = (g.zh || g.name || '·').trim().charAt(0);
+    const fb = g.coverAlt ? ' data-fb="' + esc(g.coverAlt) + '"' : '';
     return (
       '<a class="tile" href="' + g.url + '" target="_blank" rel="noopener noreferrer" title="' + esc(g.name) + '" data-name="' + esc(g.name) + '">' +
         '<div class="cover">' +
           '<div class="ph">' + esc(initial) + '</div>' +
-          '<img src="' + g.cover + '" alt="" loading="lazy" decoding="async" onerror="this.remove()">' +
+          '<img src="' + esc(g.cover) + '"' + fb + ' alt="" loading="lazy" decoding="async" ' +
+            'onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb=\'\';}else{this.remove();}">' +
         '</div>' +
         '<h3>' + esc(g.zh || g.name) + '</h3>' +
         '<div class="en"' + (g.zh ? '' : ' hidden') + '>' + esc(g.zh ? g.name : '') + '</div>' +

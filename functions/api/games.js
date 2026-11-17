@@ -257,6 +257,7 @@ function normalize(games, mode) {
     name: g.name,
     hours: Math.round(((g.minutes || 0) / 60) * 10) / 10,
     cover: `${STEAM_CDN}/${g.id}/library_600x900.jpg`,
+    coverAlt: `${STEAM_CDN}/${g.id}/header.jpg`,
     url: `https://store.steampowered.com/app/${g.id}`,
   }));
 

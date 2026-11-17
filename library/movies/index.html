@@ -89,10 +89,16 @@
       if (m.nd != null) parts.push('ND ' + m.nd.toFixed(1));
       if (m.review) parts.push(m.review);
 
+      // 封面走自己的域名代理，避免访客的网络取不到源站图片
+      const proxied = m.cover ? '/api/img?u=' + encodeURIComponent(m.cover) : null;
+
       return (
         '<div class="log-row" data-name="' + esc(m.title) + '" data-has-zh="' + (zh ? '1' : '0') + '">' +
           '<div class="poster">' +
-            (m.cover ? '<img src="' + m.cover + '" alt="" loading="lazy" onerror="this.parentNode.textContent=\'' + esc(initial) + '\'">' : esc(initial)) +
+            (proxied
+              ? '<img src="' + proxied + '" data-fb="' + esc(m.cover) + '" alt="" loading="lazy" decoding="async" ' +
+                'onerror="if(this.dataset.fb){this.src=this.dataset.fb;this.dataset.fb=\'\';}else{this.parentNode.textContent=\'' + esc(initial) + '\';}">'
+              : esc(initial)) +
           '</div>' +
           '<div class="t"><a href="' + href + '" target="_blank" rel="noopener noreferrer">' + esc(zh || m.title) + '</a>' +
             (m.year ? '<span class="y">' + m.year + '</span>' : '') +
