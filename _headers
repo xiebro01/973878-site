@@ -13,4 +13,4 @@
   Cache-Control: public, max-age=600, must-revalidate
 
 /data/*
-  Cache-Control: public, max-age=600
+  Cache-Control: public, max-age=60
