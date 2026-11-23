@@ -289,7 +289,7 @@ h1,h2,h3{margin:0;font-weight:600;letter-spacing:-.01em}
 .item:hover .fav{color:var(--accent);border-color:rgba(232,180,92,.32)}
 
 /* 需要代理的小圆点 */
-.item .slow{
+.item .proxy{
   width:5px;height:5px;
   flex:0 0 auto;
   margin-left:auto;

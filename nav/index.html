@@ -7,7 +7,7 @@
 <meta name="description" content="常去的地方都在这里。" />
 <meta name="theme-color" content="#0B0D10" />
 <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
-<link rel="stylesheet" href="../assets/style.css?v=20261117b" />
+<link rel="stylesheet" href="../assets/style.css?v=20261117c" />
 </head>
 <body>
 <main class="wrap page">
@@ -93,7 +93,7 @@
       '<a class="item" href="' + it.url + '" target="_blank" rel="noopener noreferrer" data-url="' + it.url + '">' +
         iconFor(it.url) +
         '<span class="txt"><strong>' + esc(it.name) + '</strong><small>' + esc(it.desc || '') + '</small></span>' +
-        (it.slow ? '<span class="slow" title="国内通常需要代理" aria-label="需要代理"></span>' : '') +
+        (it.proxy ? '<span class="proxy" title="国内通常需要代理" aria-label="需要代理"></span>' : '') +
       '</a>'
     );
   }
