@@ -13,6 +13,8 @@ const ALLOW = new Set([
   'shared.akamai.steamstatic.com',
   'a.ltrbxd.com',
   'image.tmdb.org',
+  'icons.duckduckgo.com',
+  'www.google.com',
 ]);
 
 const UA = 'Mozilla/5.0 (compatible; 973878-xyz/1.0)';
